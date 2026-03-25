@@ -10,6 +10,8 @@ import SwiftData
 
 @main
 struct HaengdongHagoApp: App {
+    @State private var showSplash = true
+    
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,
@@ -25,7 +27,20 @@ struct HaengdongHagoApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ZStack {
+                ContentView()
+                if showSplash {
+                    SplashView()
+                        .transition(.opacity)
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                                withAnimation(.easeInOut(duration: 0.4)) {
+                                    showSplash = false
+                                }
+                            }
+                        }
+                }
+            }
         }
         .modelContainer(sharedModelContainer)
     }
