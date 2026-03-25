@@ -1,0 +1,76 @@
+# ========================
+# macOS
+# ========================
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+*.icloud
+
+# ========================
+# Xcode
+# ========================
+
+# 빌드 결과물
+build/
+DerivedData/
+*.o
+*.d
+
+# 아카이브
+*.xcarchive
+
+# 사용자별 설정 (다른 개발자와 공유하지 않음)
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+
+# Xcode Scheme (개인 scheme은 제외, 공유 scheme은 포함)
+*.xcscheme
+!*.xcscheme
+
+# Playground
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager
+.build/
+*.resolved
+
+# CocoaPods (사용 시)
+# Pods/
+# Podfile.lock
+
+# Carthage (사용 시)
+# Carthage/Build/
+# Carthage/Checkouts/
+
+# fastlane (사용 시)
+# fastlane/report.xml
+# fastlane/Preview.html
+# fastlane/screenshots/**/*.png
+# fastlane/test_output
+
+# ========================
+# 환경변수 / 시크릿
+# ========================
+.env
+.env.*
+Secrets.swift
+GoogleService-Info.plist
+secrets.plist
+*.p8
+*.p12
+*.mobileprovision
+*.cer
+
+# ========================
+# 기타
+# ========================
+*.log
+*.tmp
+*.swp
+*~
