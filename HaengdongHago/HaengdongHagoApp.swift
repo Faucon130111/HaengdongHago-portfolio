@@ -14,7 +14,7 @@ struct HaengdongHagoApp: App {
     
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            MotivationalMessage.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -33,7 +33,7 @@ struct HaengdongHagoApp: App {
                     SplashView()
                         .transition(.opacity)
                         .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                                 withAnimation(.easeInOut(duration: 0.4)) {
                                     showSplash = false
                                 }
@@ -41,7 +41,28 @@ struct HaengdongHagoApp: App {
                         }
                 }
             }
+            .task {
+                await seedDefaultsIfNeeded()
+            }
         }
         .modelContainer(sharedModelContainer)
+    }
+    
+    @MainActor
+    private func seedDefaultsIfNeeded() async {
+        let context = sharedModelContainer.mainContext
+        
+        let descriptor = FetchDescriptor<MotivationalMessage>()
+        let count = (try? context.fetchCount(descriptor)) ?? 0
+        
+        guard count == 0 else {
+            return
+        }
+        
+        MotivationalMessage.defaults().forEach { message in
+            context.insert(message)
+        }
+        
+        try? context.save()
     }
 }

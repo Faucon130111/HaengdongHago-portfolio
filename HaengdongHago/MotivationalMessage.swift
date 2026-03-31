@@ -18,7 +18,6 @@ final class MotivationalMessage {
     init(
         content: String,
         isActivate: Bool = true,
-        isSelected: Bool = false,
     ) {
         self.id = UUID()
         self.content = content
