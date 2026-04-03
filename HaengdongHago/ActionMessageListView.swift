@@ -8,7 +8,7 @@
 import SwiftUI
 import SwiftData
 
-struct MotivationalMessageListView: View {
+struct ActionMessageListView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \ActionMessage.createdAt, order: .forward) private var messages: [ActionMessage]
     @State private var newMessage = ""
@@ -61,7 +61,7 @@ struct MotivationalMessageListView: View {
 
 #Preview {
     NavigationStack {
-        MotivationalMessageListView()
+        ActionMessageListView()
             .modelContainer(for: ActionMessage.self, inMemory: true)
     }
 }
