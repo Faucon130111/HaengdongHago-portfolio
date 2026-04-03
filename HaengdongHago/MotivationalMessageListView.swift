@@ -10,7 +10,7 @@ import SwiftData
 
 struct MotivationalMessageListView: View {
     @Environment(\.modelContext) private var context
-    @Query(sort: \MotivationalMessage.createdAt, order: .forward) private var messages: [MotivationalMessage]
+    @Query(sort: \ActionMessage.createdAt, order: .forward) private var messages: [ActionMessage]
     @State private var newMessage = ""
     @FocusState private var isFocused: Bool
     
@@ -34,7 +34,7 @@ struct MotivationalMessageListView: View {
             .padding()
             .background(.bar)
         }
-        .navigationTitle("동기부여 메시지")
+        .navigationTitle("행동 메시지")
         .toolbar {
             EditButton()
         }
@@ -47,7 +47,7 @@ struct MotivationalMessageListView: View {
             return
         }
         
-        context.insert(MotivationalMessage(content: trimmed))
+        context.insert(ActionMessage(content: trimmed))
         newMessage = ""
         isFocused = false
     }
@@ -62,6 +62,6 @@ struct MotivationalMessageListView: View {
 #Preview {
     NavigationStack {
         MotivationalMessageListView()
-            .modelContainer(for: MotivationalMessage.self, inMemory: true)
+            .modelContainer(for: ActionMessage.self, inMemory: true)
     }
 }

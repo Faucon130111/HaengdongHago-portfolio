@@ -10,12 +10,12 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var motivationalMessages: [MotivationalMessage]
+    @Query private var actionMessages: [ActionMessage]
 
     var body: some View {
         NavigationSplitView {
             List {
-                ForEach(motivationalMessages) { message in
+                ForEach(actionMessages) { message in
                     Text(message.content)
                 }
                 .onDelete(perform: deleteItems)
@@ -46,7 +46,7 @@ struct ContentView: View {
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
             for index in offsets {
-                modelContext.delete(motivationalMessages[index])
+                modelContext.delete(actionMessages[index])
             }
         }
     }
@@ -54,5 +54,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: MotivationalMessage.self, inMemory: true)
+        .modelContainer(for: ActionMessage.self, inMemory: true)
 }

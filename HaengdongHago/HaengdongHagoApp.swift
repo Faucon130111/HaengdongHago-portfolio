@@ -14,7 +14,7 @@ struct HaengdongHagoApp: App {
     
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            MotivationalMessage.self,
+            ActionMessage.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -52,14 +52,14 @@ struct HaengdongHagoApp: App {
     private func seedDefaultsIfNeeded() async {
         let context = sharedModelContainer.mainContext
         
-        let descriptor = FetchDescriptor<MotivationalMessage>()
+        let descriptor = FetchDescriptor<ActionMessage>()
         let count = (try? context.fetchCount(descriptor)) ?? 0
         
         guard count == 0 else {
             return
         }
         
-        MotivationalMessage.defaults().forEach { message in
+        ActionMessage.defaults().forEach { message in
             context.insert(message)
         }
         
