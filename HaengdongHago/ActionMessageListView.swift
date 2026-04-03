@@ -62,6 +62,6 @@ struct ActionMessageListView: View {
 #Preview {
     NavigationStack {
         ActionMessageListView()
-            .modelContainer(for: ActionMessage.self, inMemory: true)
+            .modelContainer(PreviewContainer.actionMessage)
     }
 }
