@@ -47,7 +47,10 @@ struct ActionMessageListView: View {
             return
         }
         
-        context.insert(ActionMessage(content: trimmed))
+        context.insert(ActionMessage(
+            content: trimmed,
+            order: (messages.last?.order ?? -1) + 1
+        ))
         newMessage = ""
         isFocused = false
     }
