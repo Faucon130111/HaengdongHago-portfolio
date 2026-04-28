@@ -1,0 +1,42 @@
+# 린트 검사에서 제외할 폴더
+excluded:
+  - HaengdongHagoTests      # 테스트 타겟
+  - HaengdongHagoUITests    # UI 테스트 타겟
+  - HaengdongHago.xcodeproj # 프로젝트 설정 파일
+  - .claude                 # Claude Code 워크트리
+
+# 비활성화할 규칙
+disabled_rules:
+  - trailing_comma                          # SwiftData Schema 배열 등 Xcode 자동생성 패턴과 충돌
+  - multiple_closures_with_trailing_closure # SwiftUI의 ViewBuilder 클로저 패턴과 충돌
+  - trailing_whitespace                     # SwiftFormat이 자동 처리
+  - static_over_final_class                 # final class에서 static 강제 — SwiftUI/SwiftData 패턴과 맞지 않음
+
+# 기본 비활성화지만 켤 규칙
+opt_in_rules:
+  - empty_count   # .count == 0 대신 .isEmpty 사용 권장
+  - explicit_init # .init() 명시적 호출 권장
+
+# try! 사용 시 빌드 실패 대신 경고만 표시 (Preview 등에서 제한적으로 허용)
+force_try: warning
+
+# 한 줄 최대 길이 (SwiftUI 체이닝은 기본 100자를 자주 초과)
+line_length:
+  warning: 120
+  error: 200
+  ignores_comments: true
+
+# 타입(struct/class) 본문 최대 줄 수
+type_body_length:
+  warning: 300
+  error: 400
+
+# 파일 최대 줄 수
+file_length:
+  warning: 500
+  error: 800
+
+# 함수 본문 최대 줄 수
+function_body_length:
+  warning: 60
+  error: 100
