@@ -5,33 +5,35 @@
 //  Created by bonhyuk on 3/26/26.
 //
 
-import SwiftData
 import Foundation
+import SwiftData
 
 // MARK: - 발송 방식
+
 enum DeliveryMode: String, Codable {
-    case random = "random"
-    case sequential = "sequential"
+    case random
+    case sequential
 }
 
 // MARK: - 행동 메시지
+
 @Model
 class ActionMessage {
     var id: UUID
     var content: String
-    var order: Int          // 순서대로 발송 시 사용
-    var lastSentAt: Date?   // nil이면 "아직 발신 안 됨"
+    var order: Int // 순서대로 발송 시 사용
+    var lastSentAt: Date? // nil이면 "아직 발신 안 됨"
     var createdAt: Date
-    
+
     init(
         content: String,
         order: Int
     ) {
-        self.id = UUID()
+        id = UUID()
         self.content = content
         self.order = order
-        self.lastSentAt = nil
-        self.createdAt = Date()
+        lastSentAt = nil
+        createdAt = Date()
     }
 }
 
@@ -56,19 +58,19 @@ extension ActionMessage {
             ),
         ]
     }
-    
+
     var lastSentLabel: String {
-        guard let date = self.lastSentAt
+        guard let date = lastSentAt
         else {
             return "아직 발신 안 됨"
         }
-        
+
         let days = Calendar.current.dateComponents(
             [.day],
             from: date,
             to: Date()
         ).day ?? 0
-        
+
         return days == 0 ? "오늘 발신" : "\(days)일 전 발신"
     }
 }

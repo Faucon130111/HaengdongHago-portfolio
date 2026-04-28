@@ -5,13 +5,13 @@
 //  Created by bonhyuk on 3/24/26.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 @main
 struct HaengdongHagoApp: App {
     @State private var showSplash = true
-    
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             ActionMessage.self,
@@ -47,22 +47,22 @@ struct HaengdongHagoApp: App {
         }
         .modelContainer(sharedModelContainer)
     }
-    
+
     @MainActor
     private func seedDefaultsIfNeeded() async {
         let context = sharedModelContainer.mainContext
-        
+
         let descriptor = FetchDescriptor<ActionMessage>()
         let count = (try? context.fetchCount(descriptor)) ?? 0
-        
+
         guard count == 0 else {
             return
         }
-        
-        ActionMessage.defaults().forEach { message in
+
+        for message in ActionMessage.defaults() {
             context.insert(message)
         }
-        
+
         try? context.save()
     }
 }

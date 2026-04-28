@@ -1,19 +1,19 @@
 //
-//  MotivationalMessageListView.swift
+//  ActionMessageListView.swift
 //  HaengdongHago
 //
 //  Created by bonhyuk on 4/3/26.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct ActionMessageListView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \ActionMessage.createdAt, order: .forward) private var messages: [ActionMessage]
     @State private var newMessage = ""
     @FocusState private var isFocused: Bool
-    
+
     var body: some View {
         List {
             ForEach(messages) { message in
@@ -39,14 +39,14 @@ struct ActionMessageListView: View {
             EditButton()
         }
     }
-    
+
     private func addMessage() {
         let trimmed = newMessage.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty
         else {
             return
         }
-        
+
         context.insert(ActionMessage(
             content: trimmed,
             order: (messages.last?.order ?? -1) + 1
@@ -54,7 +54,7 @@ struct ActionMessageListView: View {
         newMessage = ""
         isFocused = false
     }
-    
+
     private func deleteMessages(at offsets: IndexSet) {
         for index in offsets {
             context.delete(messages[index])
