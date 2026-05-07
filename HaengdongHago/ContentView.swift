@@ -9,49 +9,53 @@ import SwiftData
 import SwiftUI
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var actionMessages: [ActionMessage]
+    @Environment(Router.self) var router
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(actionMessages) { message in
-                    Text(message.content)
-                }
-                .onDelete(perform: deleteItems)
-            }
-            #if os(macOS)
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-            #endif
-            .toolbar {
-                #if os(iOS)
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        EditButton()
-                    }
-                #endif
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
-        }
-    }
+        @Bindable var router = router
 
-    private func addItem() {}
+        TabView(selection: $router.selectedTab) {
+            // 오늘
+            Text("오늘 화면")
+                .tabItem {
+                    Label("오늘", systemImage: "list.bullet")
+                }
+                .tag(Router.Tab.today)
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(actionMessages[index])
+            // 전체
+            Text("전체 화면")
+                .tabItem {
+                    Label("전체", systemImage: "calendar")
+                }
+                .tag(Router.Tab.all)
+
+            // 메시지
+            NavigationStack(path: $router.messagePath) {
+                MessageListView()
+                    .navigationDestination(for: Router.Destination.self) { dest in
+                        switch dest {
+                        case let .messageDetail(id):
+                            Text("메시지 상세 \(id)") // 미구현
+                        }
+                    }
             }
+            .tabItem {
+                Label("메시지", systemImage: "message")
+            }
+            .tag(Router.Tab.message)
+
+            // 더보기
+            Text("더보기 화면")
+                .tabItem {
+                    Label("더보기", systemImage: "ellipsis.circle")
+                }
+                .tag(Router.Tab.more)
         }
     }
 }
 
 #Preview {
     ContentView()
+        .environment(Router())
         .modelContainer(for: ActionMessage.self, inMemory: true)
 }

@@ -10,7 +10,12 @@ import SwiftUI
 
 @main
 struct HaengdongHagoApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showSplash = true
+    @State private var router = Router()
+
+    private let notificationService: NotificationService
+    private let notificationDelegate: NotificationDelegate
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -26,17 +31,35 @@ struct HaengdongHagoApp: App {
         }
     }()
 
+    init() {
+        let service = NotificationService()
+        let delegate = NotificationDelegate(
+            notificationService: service,
+            modelContext: sharedModelContainer.mainContext
+        )
+        UNUserNotificationCenter.current().delegate = delegate
+
+        notificationService = service
+        notificationDelegate = delegate
+    }
+
     var body: some Scene {
         WindowGroup {
             ZStack {
                 ContentView()
+                    .environment(router)
+
                 if showSplash {
                     SplashView()
                         .transition(.opacity)
                         .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                                withAnimation(.easeInOut(duration: 0.4)) {
-                                    showSplash = false
+                            Task {
+                                try await Task.sleep(for: .seconds(1.2))
+
+                                await MainActor.run {
+                                    withAnimation(.easeInOut(duration: 0.4)) {
+                                        showSplash = false
+                                    }
                                 }
                             }
                         }
@@ -44,9 +67,43 @@ struct HaengdongHagoApp: App {
             }
             .task {
                 await seedDefaultsIfNeeded()
+
+                // [행동 메시지 알림] 권한 요청 + 최초 등록
+                await setupNotification()
+
+                notificationDelegate.router = router
             }
         }
         .modelContainer(sharedModelContainer)
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                // 포그라운드 복귀 시 재등록
+                Task {
+                    await setupNotification()
+                }
+            }
+        }
+    }
+
+    // MARK: - Private
+
+    @MainActor
+    private func setupNotification() async {
+        do {
+            try await notificationService.requestPermission()
+            
+            let context = sharedModelContainer.mainContext
+            let setting = try context.fetch(FetchDescriptor<NotificationSetting>()).first ?? NotificationSetting()
+            let messages = try context.fetch(FetchDescriptor<ActionMessage>())
+
+            try await notificationService.scheduleNextMessage(
+                setting: setting,
+                messages: messages
+            )
+        } catch {
+            // 권한 거부
+            print("setupNotification 실패: \(error)")
+        }
     }
 
     @MainActor
