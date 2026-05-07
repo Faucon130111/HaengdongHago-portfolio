@@ -43,6 +43,7 @@ private struct ModeButton: View {
                 .padding(2)
         }
         .animation(.easeInOut(duration: 0.15), value: isSelected)
+        .tint(.primary)
     }
 }
 

@@ -15,6 +15,7 @@ struct HaengdongHagoApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             ActionMessage.self,
+            NotificationSetting.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

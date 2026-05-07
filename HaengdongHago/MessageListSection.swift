@@ -20,6 +20,7 @@ struct MessageListSection: View {
 
             if messages.isEmpty {
                 EmptyMessageView()
+                    .frame(maxHeight: .infinity)
             } else {
                 VStack(spacing: 8) {
                     ForEach(messages.sorted { $0.order < $1.order }) { message in
@@ -30,6 +31,7 @@ struct MessageListSection: View {
                 }
             }
         }
+        .frame(maxHeight: .infinity, alignment: .top)
     }
 }
 
@@ -37,18 +39,28 @@ struct MessageListSection: View {
 
 private struct EmptyMessageView: View {
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "text.bubble")
-                .font(.system(size: 36))
-                .foregroundStyle(.white.opacity(0.7))
+        VStack(alignment: .leading, spacing: 6) {
+            Text("0")
+                .font(.system(size: 80, weight: .bold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.15))
+                .kerning(-3)
 
-            Text("아직 메시지가 없어요\n+ 버튼으로 추가해보세요")
-                .font(.system(size: 14))
-                .foregroundStyle(.white.opacity(0.7))
-                .multilineTextAlignment(.center)
+            Rectangle()
+                .fill(.white.opacity(0.5))
+                .frame(width: 28, height: 2)
+
+            Text("아직 메시지가\n없어요")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(.white)
+                .lineSpacing(2)
+
+            Text("+ 버튼으로 나를 행동하게\n만드는 말을 추가해보세요")
+                .font(.system(size: 13))
+                .foregroundStyle(.white.opacity(0.65))
+                .lineSpacing(3)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .padding(.horizontal, 4)
     }
 }
 
@@ -59,7 +71,7 @@ private struct EmptyMessageView: View {
     ]
 
     ScrollView {
-        MessageListSection(messages: messages) { _ in }
+        MessageListSection(messages: []) { _ in }
             .padding()
     }
     .background(Color.orange.opacity(0.8))

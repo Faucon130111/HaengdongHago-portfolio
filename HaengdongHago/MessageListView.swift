@@ -28,22 +28,25 @@ struct MessageListView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // 헤더
-                HeaderView(totalCount: messages.count) {
-                    isAddSheetPresented = true
-                }
+        GeometryReader { geo in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // 헤더
+                    HeaderView(totalCount: messages.count) {
+                        isAddSheetPresented = true
+                    }
 
-                // 알림 설정 카드
-                NotificationSettingCard(setting: setting)
+                    // 알림 설정 카드
+                    NotificationSettingCard(setting: setting)
 
-                // 메시지 목록
-                MessageListSection(messages: messages) { message in
-                    context.delete(message)
+                    // 메시지 목록
+                    MessageListSection(messages: messages) { message in
+                        context.delete(message)
+                    }
                 }
+                .padding(16)
+                .frame(minHeight: geo.size.height)
             }
-            .padding(16)
         }
         .background(
             LinearGradient(
