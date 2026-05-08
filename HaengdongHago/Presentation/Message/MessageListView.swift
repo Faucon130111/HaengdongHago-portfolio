@@ -15,7 +15,7 @@ struct MessageListView: View {
     @Query private var settings: [NotificationSetting]
 
     @State private var isAddSheetPresented = false
-    @State private var newMessageText = ""
+    @State private var editingMessage: ActionMessage?
 
     private var setting: NotificationSetting {
         if let existing = settings.first {
@@ -40,9 +40,11 @@ struct MessageListView: View {
                     NotificationSettingCard(setting: setting)
 
                     // 메시지 목록
-                    MessageListSection(messages: messages) { message in
-                        context.delete(message)
-                    }
+                    MessageListSection(
+                        messages: messages,
+                        onEdit: { editingMessage = $0 },
+                        onDelete: { context.delete($0) }
+                    )
                 }
                 .padding(16)
                 .frame(minHeight: geo.size.height)
@@ -62,19 +64,22 @@ struct MessageListView: View {
             .ignoresSafeArea()
         )
         .sheet(isPresented: $isAddSheetPresented) {
-            AddMessageSheet(text: $newMessageText) {
-                addMessage()
+            MessageEditorSheet(title: "새 행동 메시지 🔥", buttonLabel: "저장") { content in
+                context.insert(ActionMessage(content: content, order: (messages.last?.order ?? -1) + 1))
+                isAddSheetPresented = false
             }
         }
-    }
-
-    private func addMessage() {
-        let trimmed = newMessageText.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return }
-
-        context.insert(ActionMessage(content: trimmed, order: (messages.last?.order ?? -1) + 1))
-        newMessageText = ""
-        isAddSheetPresented = false
+        .sheet(item: $editingMessage) { message in
+            MessageEditorSheet(
+                title: "행동 메시지 수정 🔥",
+                buttonLabel: "수정",
+                initialText: message.content,
+                originalContent: message.content
+            ) { newContent in
+                message.content = newContent
+                editingMessage = nil
+            }
+        }
     }
 }
 
@@ -108,16 +113,36 @@ private struct HeaderView: View {
     }
 }
 
-private struct AddMessageSheet: View {
-    @Binding var text: String
-    @Environment(\.dismiss) private var dismiss
-    let onAdd: () -> Void
+private struct MessageEditorSheet: View {
+    let title: String
+    let buttonLabel: String
+    let originalContent: String?
+    let onConfirm: (String) -> Void
 
-    private var charCount: Int {
-        text.count
-    }
+    @State private var text: String
+    @Environment(\.dismiss) private var dismiss
 
     private let maxChar = 100
+
+    init(
+        title: String,
+        buttonLabel: String,
+        initialText: String = "",
+        originalContent: String? = nil,
+        onConfirm: @escaping (String) -> Void
+    ) {
+        self.title = title
+        self.buttonLabel = buttonLabel
+        self.originalContent = originalContent
+        self.onConfirm = onConfirm
+        _text = State(initialValue: initialText)
+    }
+
+    private var isDisabled: Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        let isUnchanged = originalContent.map { trimmed == $0 } ?? false
+        return isUnchanged || trimmed.isEmpty || text.count > maxChar
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -128,7 +153,7 @@ private struct AddMessageSheet: View {
                 .padding(.bottom, 16)
 
             HStack {
-                Text("새 행동 메시지 🔥")
+                Text(title)
                     .font(.system(size: 16, weight: .heavy))
                 Spacer()
             }
@@ -150,9 +175,9 @@ private struct AddMessageSheet: View {
 
             HStack {
                 Spacer()
-                Text("\(charCount) / \(maxChar)")
+                Text("\(text.count) / \(maxChar)")
                     .font(.system(size: 11))
-                    .foregroundStyle(charCount > maxChar ? .red : Color(.secondaryLabel))
+                    .foregroundStyle(text.count > maxChar ? .red : Color(.secondaryLabel))
             }
             .padding(.horizontal, 20)
             .padding(.top, 4)
@@ -167,16 +192,14 @@ private struct AddMessageSheet: View {
                     .font(.system(size: 15, weight: .semibold))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                Button("저장") { onAdd() }
+                Button(buttonLabel) { onConfirm(text.trimmingCharacters(in: .whitespaces)) }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(text.trimmingCharacters(in: .whitespaces).isEmpty || charCount > maxChar
-                        ? Color(.systemGray4)
-                        : Color(red: 1.0, green: 0.176, blue: 0.333))
+                    .background(isDisabled ? Color(.systemGray4) : Color(red: 1.0, green: 0.176, blue: 0.333))
                     .foregroundStyle(.white)
                     .font(.system(size: 15, weight: .bold))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .disabled(text.trimmingCharacters(in: .whitespaces).isEmpty || charCount > maxChar)
+                    .disabled(isDisabled)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 8)

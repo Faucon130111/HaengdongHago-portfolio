@@ -47,10 +47,11 @@ extension NotificationSetting {
             let sorted = messages.sorted { $0.order < $1.order }
             let candidate = sorted.first { $0.order >= nextSequentialOrder } ?? sorted.first
 
-            if let candidate,
-               let idx = sorted.firstIndex(where: { $0.id == candidate.id }) {
-                let nextIdx = (idx + 1) % sorted.count
-                nextSequentialOrder = sorted[nextIdx].order
+            if let candidate {
+                if let idx = sorted.firstIndex(where: { $0.id == candidate.id }) {
+                    let nextIdx = (idx + 1) % sorted.count
+                    nextSequentialOrder = sorted[nextIdx].order
+                }
             }
 
             return candidate

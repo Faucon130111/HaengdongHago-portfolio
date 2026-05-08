@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MessageListSection: View {
     let messages: [ActionMessage]
+    let onEdit: (ActionMessage) -> Void
     let onDelete: (ActionMessage) -> Void
 
     var body: some View {
@@ -24,9 +25,11 @@ struct MessageListSection: View {
             } else {
                 VStack(spacing: 8) {
                     ForEach(messages.sorted { $0.order < $1.order }) { message in
-                        MessageRowView(message: message) {
-                            onDelete(message)
-                        }
+                        MessageRowView(
+                            message: message,
+                            onTap: { onEdit(message) },
+                            onDelete: { onDelete(message) }
+                        )
                     }
                 }
             }
@@ -71,7 +74,7 @@ private struct EmptyMessageView: View {
     ]
 
     ScrollView {
-        MessageListSection(messages: []) { _ in }
+        MessageListSection(messages: [], onEdit: { _ in }) { _ in }
             .padding()
     }
     .background(Color.orange.opacity(0.8))

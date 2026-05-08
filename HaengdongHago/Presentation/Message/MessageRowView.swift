@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MessageRowView: View {
     let message: ActionMessage
+    let onTap: () -> Void
     let onDelete: () -> Void
 
     var body: some View {
@@ -38,12 +39,13 @@ struct MessageRowView: View {
         .padding(16)
         .background(.white)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .onTapGesture { onTap() }
     }
 }
 
 #Preview {
     MessageRowView(
-        message: ActionMessage(content: "행동하지 않으면 아무것도 일어나지 않는다.", order: 0), onDelete: {}
+        message: ActionMessage(content: "행동하지 않으면 아무것도 일어나지 않는다.", order: 0), onTap: {}, onDelete: {}
     )
     .padding()
     .background(Color.orange.opacity(0.2))
