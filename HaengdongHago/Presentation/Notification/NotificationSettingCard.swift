@@ -95,8 +95,6 @@ private struct TimePickerSheet: View {
     @Binding var minute: Int
     @Environment(\.dismiss) private var dismiss
 
-    @State private var selectedDate: Date
-    
     // 내부 상태 (오전/오후, 시, 분 분리)
     @State private var isPM: Bool
     @State private var displayHour: Int // 1~12
@@ -128,13 +126,39 @@ private struct TimePickerSheet: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 8)
 
-            DatePicker("", selection: $selectedDate, displayedComponents: .hourAndMinute)
-                .datePickerStyle(.wheel)
-                .labelsHidden()
-            // onChange 제거 — 완료 시에만 반영
+            // ── 커스텀 휠 ──
+            HStack(spacing: 0) {
+                // 오전 / 오후
+                Picker("", selection: $isPM) {
+                    Text("오전").tag(false)
+                    Text("오후").tag(true)
+                }
+                .pickerStyle(.wheel)
+                .frame(maxWidth: .infinity)
+
+                // 시 (1~12)
+                Picker("", selection: $displayHour) {
+                    ForEach(1 ... 12, id: \.self) { hour in
+                        Text("\(hour)시").tag(hour)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(maxWidth: .infinity)
+
+                // 분 (00~59)
+                Picker("", selection: $selectedMinute) {
+                    ForEach(0 ... 59, id: \.self) { minute in
+                        Text(String(format: "%02d분", minute)).tag(minute)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(maxWidth: .infinity)
+            }
+            .frame(height: 160)
+            .padding(.horizontal, 8)
 
             HStack(spacing: 10) {
-                Button("취소") { dismiss() } // 그냥 닫기만 — binding 안 건드림
+                Button("취소") { dismiss() }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .background(Color(.systemGray5))
@@ -143,10 +167,15 @@ private struct TimePickerSheet: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 Button("완료") {
-                    // 여기서만 binding에 커밋
-                    let components = Calendar.current.dateComponents([.hour, .minute], from: selectedDate)
-                    hour = components.hour ?? 7
-                    minute = components.minute ?? 0
+                    // 오전/오후 + displayHour → 24시간 변환
+                    let converted: Int = switch (isPM, displayHour) {
+                    case (false, 12): 0 // 오전 12시 = 자정
+                    case (false, _): displayHour
+                    case (true, 12): 12 // 오후 12시 = 정오
+                    case (true, _): displayHour + 12
+                    }
+                    hour = converted
+                    minute = selectedMinute
                     dismiss()
                 }
                 .frame(maxWidth: .infinity)
