@@ -15,15 +15,18 @@ class NotificationSetting {
     var hour: Int
     var minute: Int
     var deliveryMode: DeliveryMode
+    var nextSequentialOrder: Int
 
     init(
         hour: Int = 7,
         minute: Int = 0,
-        deliveryMode: DeliveryMode = .random
+        deliveryMode: DeliveryMode = .random,
+        nextSequentialOrder: Int = 0
     ) {
         self.hour = hour
         self.minute = minute
         self.deliveryMode = deliveryMode
+        self.nextSequentialOrder = nextSequentialOrder
     }
 }
 
@@ -41,16 +44,16 @@ extension NotificationSetting {
             return unsent.randomElement() ?? messages.randomElement()
 
         case .sequential:
-            // order 오름차순 정렬 후 가장 오래된 것 또는 미발송
             let sorted = messages.sorted { $0.order < $1.order }
-            if let unsent = sorted.first(where: { $0.lastSentAt == nil }) {
-                return unsent
+            let candidate = sorted.first { $0.order >= nextSequentialOrder } ?? sorted.first
+
+            if let candidate,
+               let idx = sorted.firstIndex(where: { $0.id == candidate.id }) {
+                let nextIdx = (idx + 1) % sorted.count
+                nextSequentialOrder = sorted[nextIdx].order
             }
 
-            // 전부 발송된 경우 -> 가장 오래전에 발송된 것
-            return sorted.min { lhs, rhs in
-                (lhs.lastSentAt ?? .distantPast) < (rhs.lastSentAt ?? .distantPast)
-            }
+            return candidate
         }
     }
 }

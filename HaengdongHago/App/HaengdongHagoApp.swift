@@ -5,6 +5,7 @@
 //  Created by bonhyuk on 3/24/26.
 //
 
+import Combine
 import SwiftData
 import SwiftUI
 
@@ -48,6 +49,12 @@ struct HaengdongHagoApp: App {
             ZStack {
                 ContentView()
                     .environment(router)
+                    .onReceive(
+                        NotificationCenter.default.publisher(for: .notificationSettingDidChange)
+                            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
+                    ) { _ in
+                        Task { await setupNotification() }
+                    }
 
                 if showSplash {
                     SplashView()
@@ -91,7 +98,7 @@ struct HaengdongHagoApp: App {
     private func setupNotification() async {
         do {
             try await notificationService.requestPermission()
-            
+
             let context = sharedModelContainer.mainContext
             let setting = try context.fetch(FetchDescriptor<NotificationSetting>()).first ?? NotificationSetting()
             let messages = try context.fetch(FetchDescriptor<ActionMessage>())
@@ -100,6 +107,8 @@ struct HaengdongHagoApp: App {
                 setting: setting,
                 messages: messages
             )
+
+            try? context.save()
         } catch {
             // 권한 거부
             print("setupNotification 실패: \(error)")

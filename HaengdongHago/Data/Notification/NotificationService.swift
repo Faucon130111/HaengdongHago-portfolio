@@ -34,13 +34,15 @@ final class NotificationService {
         setting: NotificationSetting,
         messages: [ActionMessage]
     ) async throws {
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+
         guard let next = setting.nextMessage(from: messages)
         else {
             throw NotificationError.noMessages
         }
 
         let content = UNMutableNotificationContent()
-        content.title = "행동하고 🔥"
+        content.title = "행동하고🔥"
         content.body = next.content
         content.sound = .default
         content.userInfo = [

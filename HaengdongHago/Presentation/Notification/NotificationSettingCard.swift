@@ -7,6 +7,14 @@
 
 import SwiftUI
 
+// MARK: - Notification.Name
+
+extension Notification.Name {
+    static let notificationSettingDidChange = Notification.Name(
+        "com.haengdongha.notificationSettingDidChange"
+    )
+}
+
 struct NotificationSettingCard: View {
     @Bindable var setting: NotificationSetting
 
@@ -54,17 +62,29 @@ struct NotificationSettingCard: View {
         }
         .background(.white)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .onChange(of: setting.hour) { _, _ in postReschedule() }
+        .onChange(of: setting.minute) { _, _ in postReschedule() }
+        .onChange(of: setting.deliveryMode) { _, _ in postReschedule() }
         .sheet(isPresented: $isTimePickerPresented) {
             TimePickerSheet(hour: $setting.hour, minute: $setting.minute)
                 .presentationDetents([.height(300)])
         }
     }
 
+    // MARK: - Private
+
     private var timeLabel: String {
         let period = setting.hour < 12 ? "오전" : "오후"
         let displayHour = setting.hour == 0 ? 12 : (setting.hour > 12 ? setting.hour - 12 : setting.hour)
         let minuteStr = String(format: "%02d", setting.minute)
         return "매일 \(period) \(displayHour):\(minuteStr)"
+    }
+
+    private func postReschedule() {
+        NotificationCenter.default.post(
+            name: .notificationSettingDidChange,
+            object: nil
+        )
     }
 }
 
@@ -76,16 +96,20 @@ private struct TimePickerSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var selectedDate: Date
+    
+    // 내부 상태 (오전/오후, 시, 분 분리)
+    @State private var isPM: Bool
+    @State private var displayHour: Int // 1~12
+    @State private var selectedMinute: Int
 
     init(hour: Binding<Int>, minute: Binding<Int>) {
         _hour = hour
         _minute = minute
 
-        var components = DateComponents()
-        components.hour = hour.wrappedValue
-        components.minute = minute.wrappedValue
-        let date = Calendar.current.date(from: components) ?? Date()
-        _selectedDate = State(initialValue: date)
+        let hour24 = hour.wrappedValue
+        _isPM = State(initialValue: hour24 >= 12)
+        _displayHour = State(initialValue: hour24 == 0 ? 12 : (hour24 > 12 ? hour24 - 12 : hour24))
+        _selectedMinute = State(initialValue: minute.wrappedValue)
     }
 
     var body: some View {
