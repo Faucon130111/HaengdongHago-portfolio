@@ -29,18 +29,14 @@ final class Router {
     // MARK: State
 
     var selectedTab: Tab = .today
-    var messagePath: NavigationPath = .init()
+    var editingMessageId: UUID?
 
     func navigate(to destination: Destination) {
         switch destination {
-        case .messageDetail:
+        case let .messageDetail(id):
             selectedTab = .message
-            messagePath.append(destination)
+            editingMessageId = id
         }
-    }
-
-    func popToRoot() {
-        messagePath.removeLast(messagePath.count)
     }
 
     func selectTab(_ tab: Tab) {

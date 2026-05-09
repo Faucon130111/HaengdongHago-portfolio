@@ -30,14 +30,8 @@ struct ContentView: View {
                 .tag(Router.Tab.all)
 
             // 메시지
-            NavigationStack(path: $router.messagePath) {
+            NavigationStack {
                 MessageListView()
-                    .navigationDestination(for: Router.Destination.self) { dest in
-                        switch dest {
-                        case let .messageDetail(id):
-                            Text("메시지 상세 \(id)") // 미구현
-                        }
-                    }
             }
             .tabItem {
                 Label("메시지", systemImage: "message")

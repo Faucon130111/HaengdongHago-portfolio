@@ -10,12 +10,12 @@ import SwiftUI
 
 struct MessageListView: View {
     @Environment(\.modelContext) private var context
+    @Environment(Router.self) private var router
 
     @Query(sort: \ActionMessage.order) private var messages: [ActionMessage]
     @Query private var settings: [NotificationSetting]
 
     @State private var isAddSheetPresented = false
-    @State private var editingMessage: ActionMessage?
 
     private var setting: NotificationSetting {
         if let existing = settings.first {
@@ -27,7 +27,14 @@ struct MessageListView: View {
         return newSetting
     }
 
+    private var editingMessage: ActionMessage? {
+        guard let id = router.editingMessageId else { return nil }
+        return messages.first { $0.id == id }
+    }
+
     var body: some View {
+        @Bindable var router = router
+
         GeometryReader { geo in
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
@@ -42,7 +49,7 @@ struct MessageListView: View {
                     // 메시지 목록
                     MessageListSection(
                         messages: messages,
-                        onEdit: { editingMessage = $0 },
+                        onEdit: { router.navigate(to: .messageDetail($0.id)) },
                         onDelete: { context.delete($0) }
                     )
                 }
@@ -64,20 +71,20 @@ struct MessageListView: View {
             .ignoresSafeArea()
         )
         .sheet(isPresented: $isAddSheetPresented) {
-            MessageEditorSheet(title: "새 행동 메시지 🔥", buttonLabel: "저장") { content in
+            MessageEditorSheet { content in
                 context.insert(ActionMessage(content: content, order: (messages.last?.order ?? -1) + 1))
                 isAddSheetPresented = false
             }
         }
-        .sheet(item: $editingMessage) { message in
-            MessageEditorSheet(
-                title: "행동 메시지 수정 🔥",
-                buttonLabel: "수정",
-                initialText: message.content,
-                originalContent: message.content
-            ) { newContent in
-                message.content = newContent
-                editingMessage = nil
+        .sheet(isPresented: Binding(
+            get: { router.editingMessageId != nil },
+            set: { if !$0 { router.editingMessageId = nil } }
+        )) {
+            if let message = editingMessage {
+                MessageEditorSheet(originalContent: message.content) { newContent in
+                    message.content = newContent
+                    router.editingMessageId = nil
+                }
             }
         }
     }
@@ -114,8 +121,6 @@ private struct HeaderView: View {
 }
 
 private struct MessageEditorSheet: View {
-    let title: String
-    let buttonLabel: String
     let originalContent: String?
     let onConfirm: (String) -> Void
 
@@ -124,18 +129,14 @@ private struct MessageEditorSheet: View {
 
     private let maxChar = 100
 
-    init(
-        title: String,
-        buttonLabel: String,
-        initialText: String = "",
-        originalContent: String? = nil,
-        onConfirm: @escaping (String) -> Void
-    ) {
-        self.title = title
-        self.buttonLabel = buttonLabel
+    init(originalContent: String? = nil, onConfirm: @escaping (String) -> Void) {
         self.originalContent = originalContent
         self.onConfirm = onConfirm
-        _text = State(initialValue: initialText)
+        _text = State(initialValue: originalContent ?? "")
+    }
+
+    private var isEditMode: Bool {
+        originalContent != nil
     }
 
     private var isDisabled: Bool {
@@ -153,7 +154,7 @@ private struct MessageEditorSheet: View {
                 .padding(.bottom, 16)
 
             HStack {
-                Text(title)
+                Text(isEditMode ? "행동 메시지 수정 🔥" : "새 행동 메시지 🔥")
                     .font(.system(size: 16, weight: .heavy))
                 Spacer()
             }
@@ -192,14 +193,16 @@ private struct MessageEditorSheet: View {
                     .font(.system(size: 15, weight: .semibold))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                Button(buttonLabel) { onConfirm(text.trimmingCharacters(in: .whitespaces)) }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(isDisabled ? Color(.systemGray4) : Color(red: 1.0, green: 0.176, blue: 0.333))
-                    .foregroundStyle(.white)
-                    .font(.system(size: 15, weight: .bold))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .disabled(isDisabled)
+                Button(isEditMode ? "수정" : "저장") {
+                    onConfirm(text.trimmingCharacters(in: .whitespaces))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(isDisabled ? Color(.systemGray4) : Color(red: 1.0, green: 0.176, blue: 0.333))
+                .foregroundStyle(.white)
+                .font(.system(size: 15, weight: .bold))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .disabled(isDisabled)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 8)
