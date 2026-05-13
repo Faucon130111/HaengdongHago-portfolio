@@ -50,7 +50,10 @@ struct MessageListView: View {
                     MessageListSection(
                         messages: messages,
                         onEdit: { router.navigate(to: .messageDetail($0.id)) },
-                        onDelete: { context.delete($0) }
+                        onDelete: {
+                            context.delete($0)
+                            NotificationCenter.default.post(name: .messageListDidChange, object: nil)
+                        }
                     )
                 }
                 .padding(16)
@@ -73,6 +76,7 @@ struct MessageListView: View {
         .sheet(isPresented: $isAddSheetPresented) {
             MessageEditorSheet { content in
                 context.insert(ActionMessage(content: content, order: (messages.last?.order ?? -1) + 1))
+                NotificationCenter.default.post(name: .messageListDidChange, object: nil)
                 isAddSheetPresented = false
             }
         }
@@ -83,6 +87,7 @@ struct MessageListView: View {
             if let message = editingMessage {
                 MessageEditorSheet(originalContent: message.content) { newContent in
                     message.content = newContent
+                    NotificationCenter.default.post(name: .messageListDidChange, object: nil)
                     router.editingMessageId = nil
                 }
             }

@@ -10,15 +10,10 @@ import SwiftData
 import UserNotifications
 
 final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
-    private let notificationService: NotificationService
     private let modelContext: ModelContext
     var router: Router?
 
-    init(
-        notificationService: NotificationService,
-        modelContext: ModelContext
-    ) {
-        self.notificationService = notificationService
+    init(modelContext: ModelContext) {
         self.modelContext = modelContext
     }
 
@@ -51,7 +46,6 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             }
 
             updateLastSentAt(messageId: id)
-            reschedule()
         }
     }
 
@@ -69,24 +63,5 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
 
         message.lastSentAt = Date()
         try? modelContext.save()
-    }
-
-    private func reschedule() {
-        let settingDescriptor = FetchDescriptor<NotificationSetting>()
-        let messageDescriptor = FetchDescriptor<ActionMessage>()
-
-        guard
-            let setting = try? modelContext.fetch(settingDescriptor).first,
-            let messages = try? modelContext.fetch(messageDescriptor)
-        else {
-            return
-        }
-
-        Task {
-            try? await notificationService.scheduleNextMessage(
-                setting: setting,
-                messages: messages
-            )
-        }
     }
 }

@@ -13,6 +13,9 @@ extension Notification.Name {
     static let notificationSettingDidChange = Notification.Name(
         "com.haengdongha.notificationSettingDidChange"
     )
+    static let messageListDidChange = Notification.Name(
+        "com.haengdongha.messageListDidChange"
+    )
 }
 
 struct NotificationSettingCard: View {

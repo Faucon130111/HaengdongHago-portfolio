@@ -34,10 +34,9 @@ struct HaengdongHagoApp: App {
 
     init() {
         let service = NotificationService()
-        let delegate = NotificationDelegate(
-            notificationService: service,
-            modelContext: sharedModelContainer.mainContext
-        )
+        service.initializeReferenceDate()
+
+        let delegate = NotificationDelegate(modelContext: sharedModelContainer.mainContext)
         UNUserNotificationCenter.current().delegate = delegate
 
         notificationService = service
@@ -51,6 +50,12 @@ struct HaengdongHagoApp: App {
                     .environment(router)
                     .onReceive(
                         NotificationCenter.default.publisher(for: .notificationSettingDidChange)
+                            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
+                    ) { _ in
+                        Task { await setupNotification() }
+                    }
+                    .onReceive(
+                        NotificationCenter.default.publisher(for: .messageListDidChange)
                             .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
                     ) { _ in
                         Task { await setupNotification() }
@@ -84,10 +89,8 @@ struct HaengdongHagoApp: App {
         .modelContainer(sharedModelContainer)
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
-                // 포그라운드 복귀 시 재등록
-                Task {
-                    await setupNotification()
-                }
+                // 포그라운드 복귀 시 잔여 부족할 때만 재등록
+                Task { await rescheduleIfNeeded() }
             }
         }
     }
@@ -103,16 +106,23 @@ struct HaengdongHagoApp: App {
             let setting = try context.fetch(FetchDescriptor<NotificationSetting>()).first ?? NotificationSetting()
             let messages = try context.fetch(FetchDescriptor<ActionMessage>())
 
-            try await notificationService.scheduleNextMessage(
-                setting: setting,
-                messages: messages
-            )
+            await notificationService.reschedule(messages: messages, setting: setting)
 
             try? context.save()
         } catch {
-            // 권한 거부
             print("setupNotification 실패: \(error)")
         }
+    }
+
+    @MainActor
+    private func rescheduleIfNeeded() async {
+        let context = sharedModelContainer.mainContext
+        guard
+            let setting = try? context.fetch(FetchDescriptor<NotificationSetting>()).first,
+            let messages = try? context.fetch(FetchDescriptor<ActionMessage>())
+        else { return }
+
+        await notificationService.rescheduleIfNeeded(messages: messages, setting: setting)
     }
 
     @MainActor
