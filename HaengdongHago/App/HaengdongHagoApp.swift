@@ -14,6 +14,7 @@ struct HaengdongHagoApp: App {
     @Environment(\.scenePhase) private var scenePhase
     @State private var showSplash = true
     @State private var router = Router()
+    @State private var isInitialLaunch = true
 
     private let notificationService: NotificationService
     private let notificationDelegate: NotificationDelegate
@@ -89,6 +90,11 @@ struct HaengdongHagoApp: App {
         .modelContainer(sharedModelContainer)
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
+                // 앱 최초 실행 시에는 .task의 setupNotification이 처리하므로 스킵
+                if isInitialLaunch {
+                    isInitialLaunch = false
+                    return
+                }
                 // 포그라운드 복귀 시 잔여 부족할 때만 재등록
                 Task { await rescheduleIfNeeded() }
             }
