@@ -41,6 +41,7 @@ final class NotificationService {
     func reschedule(messages: [ActionMessage], setting: NotificationSetting) async {
         guard !messages.isEmpty else {
             cancelMotivationNotifications()
+            print("📵 [Notification] 메시지 없음 → 알림 전체 취소")
             return
         }
 
@@ -49,13 +50,18 @@ final class NotificationService {
         let isSequential = setting.deliveryMode == .sequential
 
         cancelMotivationNotifications()
+        print("🔄 [Notification] reschedule 시작 — 메시지 \(messages.count)개, 모드: \(isSequential ? "순차" : "랜덤")")
 
         for dayOffset in 0 ..< 30 {
             let message = isSequential
                 ? sequentialMessage(for: dayOffset, messages: sorted)
                 : randomMessage(for: dayOffset, messages: sorted)
 
-            let targetDate = Calendar.current.date(byAdding: .day, value: dayOffset, to: .now)!
+            #if DEBUG
+                let targetDate = Calendar.current.date(byAdding: .minute, value: dayOffset, to: .now)!
+            #else
+                let targetDate = Calendar.current.date(byAdding: .day, value: dayOffset, to: .now)!
+            #endif
             var dateComponents = DateComponents()
             dateComponents.hour = setting.hour
             dateComponents.minute = setting.minute
@@ -76,7 +82,10 @@ final class NotificationService {
                 trigger: trigger
             )
             try? await center.add(request)
+            print("  [\(dayOffset)] \(dateComponents.month!)/\(dateComponents.day!) \(dateComponents.hour!):\(String(format: "%02d", dateComponents.minute!)) → \(message.content.prefix(20))…")
         }
+
+        print("✅ [Notification] 등록 완료 — 30개")
     }
 
     // MARK: - 잔여 알림 부족 시에만 재등록
@@ -84,6 +93,8 @@ final class NotificationService {
     func rescheduleIfNeeded(messages: [ActionMessage], setting: NotificationSetting) async {
         let requests = await UNUserNotificationCenter.current().pendingNotificationRequests()
         let remaining = requests.count(where: { $0.identifier.hasPrefix(Self.idPrefix) })
+
+        print("🔍 [Notification] rescheduleIfNeeded — 잔여: \(remaining)개 \(remaining < 10 ? "→ 재등록" : "→ 충분, 스킵")")
 
         if remaining < 10 {
             await reschedule(messages: messages, setting: setting)

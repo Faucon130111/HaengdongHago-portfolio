@@ -21,9 +21,10 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
 
     func userNotificationCenter(
         _: UNUserNotificationCenter,
-        willPresent _: UNNotification
+        willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+        print("🔔 [Delegate] 포그라운드 알림 수신: \(notification.request.identifier) — \(notification.request.content.body.prefix(30))")
+        return [.banner, .sound]
     }
 
     // MARK: 알림 탭 콜백
@@ -33,6 +34,7 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         didReceive response: UNNotificationResponse
     ) async {
         let userInfo = response.notification.request.content.userInfo
+        print("👆 [Delegate] 알림 탭: \(response.notification.request.identifier)")
 
         await MainActor.run {
             router?.handle(userInfo: userInfo)
@@ -42,9 +44,11 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
                 let idString = userInfo["id"] as? String,
                 let id = UUID(uuidString: idString)
             else {
+                print("👆 [Delegate] userInfo 파싱 실패: \(userInfo)")
                 return
             }
 
+            print("👆 [Delegate] lastSentAt 업데이트 → messageId: \(idString)")
             updateLastSentAt(messageId: id)
         }
     }

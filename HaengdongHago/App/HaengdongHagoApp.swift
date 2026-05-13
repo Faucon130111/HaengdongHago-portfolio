@@ -99,6 +99,7 @@ struct HaengdongHagoApp: App {
 
     @MainActor
     private func setupNotification() async {
+        print("⚙️ [App] setupNotification 호출")
         do {
             try await notificationService.requestPermission()
 
@@ -106,16 +107,18 @@ struct HaengdongHagoApp: App {
             let setting = try context.fetch(FetchDescriptor<NotificationSetting>()).first ?? NotificationSetting()
             let messages = try context.fetch(FetchDescriptor<ActionMessage>())
 
+            print("⚙️ [App] 메시지 \(messages.count)개, 알림 시간 \(setting.hour):\(String(format: "%02d", setting.minute))")
             await notificationService.reschedule(messages: messages, setting: setting)
 
             try? context.save()
         } catch {
-            print("setupNotification 실패: \(error)")
+            print("⚙️ [App] setupNotification 실패: \(error)")
         }
     }
 
     @MainActor
     private func rescheduleIfNeeded() async {
+        print("⚙️ [App] rescheduleIfNeeded 호출 (포그라운드 복귀)")
         let context = sharedModelContainer.mainContext
         guard
             let setting = try? context.fetch(FetchDescriptor<NotificationSetting>()).first,
