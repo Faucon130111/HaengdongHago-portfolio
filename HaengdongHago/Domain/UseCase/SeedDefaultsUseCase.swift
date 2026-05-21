@@ -19,7 +19,5 @@ struct SeedDefaultsUseCase {
         for message in ActionMessage.defaults() {
             try messageRepo.add(message)
         }
-
-        try messageRepo.save()
     }
 }

@@ -28,6 +28,7 @@ final class SwiftDataActionMessageRepository: ActionMessageRepository {
 
     func add(_ message: ActionMessage) throws {
         context.insert(ActionMessageEntity.from(message))
+        try context.save()
     }
 
     func update(_ message: ActionMessage) throws {
@@ -39,6 +40,7 @@ final class SwiftDataActionMessageRepository: ActionMessageRepository {
         entity.content = message.content
         entity.order = message.order
         entity.lastSentAt = message.lastSentAt
+        try context.save()
     }
 
     func delete(_ message: ActionMessage) throws {
@@ -48,6 +50,7 @@ final class SwiftDataActionMessageRepository: ActionMessageRepository {
         )
         guard let entity = try context.fetch(descriptor).first else { return }
         context.delete(entity)
+        try context.save()
     }
 
     func updateLastSentAt(
@@ -59,9 +62,6 @@ final class SwiftDataActionMessageRepository: ActionMessageRepository {
         )
         guard let entity = try context.fetch(descriptor).first else { return }
         entity.lastSentAt = date
-    }
-
-    func save() throws {
         try context.save()
     }
 }

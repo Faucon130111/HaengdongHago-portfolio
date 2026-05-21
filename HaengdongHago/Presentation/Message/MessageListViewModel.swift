@@ -7,37 +7,35 @@
 
 import Foundation
 
+@MainActor
 @Observable
 final class MessageListViewModel {
     private(set) var messages: [ActionMessage] = []
     private let useCase: MessageUseCase
 
-    init(messageRepo: ActionMessageRepository) {
-        useCase = MessageUseCase(messageRepo: messageRepo)
+    init(useCase: MessageUseCase) {
+        self.useCase = useCase
     }
 
     func load() {
         messages = (try? useCase.load()) ?? []
     }
 
-    func addMessage(content: String) throws {
-        try useCase.add(content: content)
+    func addMessage(content: String) async throws {
+        try await useCase.add(content: content)
         load()
-        NotificationCenter.default.post(name: .messageListDidChange, object: nil)
     }
 
     func updateMessage(
         _ message: ActionMessage,
         content: String
-    ) throws {
-        try useCase.update(message, content: content)
+    ) async throws {
+        try await useCase.update(message, content: content)
         load()
-        NotificationCenter.default.post(name: .messageListDidChange, object: nil)
     }
 
-    func deleteMessage(_ message: ActionMessage) throws {
-        try useCase.delete(message)
+    func deleteMessage(_ message: ActionMessage) async throws {
+        try await useCase.delete(message)
         load()
-        NotificationCenter.default.post(name: .messageListDidChange, object: nil)
     }
 }

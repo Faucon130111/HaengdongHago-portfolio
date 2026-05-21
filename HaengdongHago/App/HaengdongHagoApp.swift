@@ -6,6 +6,7 @@
 //
 
 import Combine
+import os
 import SwiftData
 import SwiftUI
 
@@ -18,10 +19,10 @@ struct HaengdongHagoApp: App {
     @State private var messageListViewModel: MessageListViewModel
     @State private var notificationSettingViewModel: NotificationSettingViewModel
 
-    private let notificationService: NotificationServiceProtocol
     private let notificationDelegate: NotificationDelegate
-    private let messageRepo: ActionMessageRepository
-    private let settingRepo: NotificationSettingRepository
+    private let seedDefaultsUseCase: SeedDefaultsUseCase
+    private let setupUseCase: SetupNotificationUseCase
+    private let rescheduleIfNeededUseCase: RescheduleIfNeededUseCase
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -39,21 +40,46 @@ struct HaengdongHagoApp: App {
     init() {
         let context = sharedModelContainer.mainContext
 
-        let service = NotificationService()
-        service.initializeReferenceData()
+        let messageRepo = SwiftDataActionMessageRepository(context: context)
+        let settingRepo = SwiftDataNotificationSettingRepository(context: context)
+        let notificationService = NotificationService()
+        let referenceDateProvider = UserDefaultsReferenceDateStore()
+        let scheduler = MotivationScheduler()
 
-        let mRepo = SwiftDataActionMessageRepository(context: context)
-        let sRepo = SwiftDataNotificationSettingRepository(context: context)
+        let reschedule = RescheduleNotificationsUseCase(
+            messageRepo: messageRepo,
+            settingRepo: settingRepo,
+            notificationService: notificationService,
+            referenceDateProvider: referenceDateProvider,
+            scheduler: scheduler
+        )
 
-        let delegate = NotificationDelegate(messageRepo: mRepo)
+        let delegate = NotificationDelegate(
+            markMessageSent: MarkMessageSentUseCase(messageRepo: messageRepo)
+        )
         UNUserNotificationCenter.current().delegate = delegate
 
-        notificationService = service
         notificationDelegate = delegate
-        messageRepo = mRepo
-        settingRepo = sRepo
-        _messageListViewModel = State(wrappedValue: MessageListViewModel(messageRepo: mRepo))
-        _notificationSettingViewModel = State(wrappedValue: NotificationSettingViewModel(settingRepo: sRepo))
+        seedDefaultsUseCase = SeedDefaultsUseCase(messageRepo: messageRepo)
+        setupUseCase = SetupNotificationUseCase(
+            notificationService: notificationService,
+            reschedule: reschedule
+        )
+        rescheduleIfNeededUseCase = RescheduleIfNeededUseCase(
+            notificationService: notificationService,
+            reschedule: reschedule
+        )
+
+        _messageListViewModel = State(
+            wrappedValue: MessageListViewModel(
+                useCase: MessageUseCase(messageRepo: messageRepo, reschedule: reschedule)
+            )
+        )
+        _notificationSettingViewModel = State(
+            wrappedValue: NotificationSettingViewModel(
+                useCase: NotificationSettingUseCase(settingRepo: settingRepo, reschedule: reschedule)
+            )
+        )
     }
 
     var body: some Scene {
@@ -63,18 +89,6 @@ struct HaengdongHagoApp: App {
                     .environment(router)
                     .environment(messageListViewModel)
                     .environment(notificationSettingViewModel)
-                    .onReceive(
-                        NotificationCenter.default.publisher(for: .notificationSettingDidChange)
-                            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
-                    ) { _ in
-                        Task { await runSetupNotification() }
-                    }
-                    .onReceive(
-                        NotificationCenter.default.publisher(for: .messageListDidChange)
-                            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
-                    ) { _ in
-                        Task { await runSetupNotification() }
-                    }
                     .onReceive(
                         NotificationCenter.default.publisher(for: .notificationTapped)
                     ) { notification in
@@ -99,7 +113,7 @@ struct HaengdongHagoApp: App {
                 }
             }
             .task {
-                try? SeedDefaultsUseCase(messageRepo: messageRepo).execute()
+                try? seedDefaultsUseCase.execute()
                 messageListViewModel.load()
                 await runSetupNotification()
             }
@@ -120,25 +134,15 @@ struct HaengdongHagoApp: App {
 
     @MainActor
     private func runSetupNotification() async {
-        print("⚙️ [App] setupNotification 호출")
         do {
-            try await SetupNotificationUseCase(
-                notificationService: notificationService,
-                messageRepo: messageRepo,
-                settingRepo: settingRepo
-            ).execute()
+            try await setupUseCase.execute()
         } catch {
-            print("⚙️ [App] setupNotification 실패: \(error)")
+            Logger.app.error("setupNotification 실패: \(error.localizedDescription)")
         }
     }
 
     @MainActor
     private func runRescheduleIfNeeded() async {
-        print("⚙️ [App] rescheduleIfNeeded 호출 (포그라운드 복귀)")
-        try? await RescheduleIfNeededUseCase(
-            notificationService: notificationService,
-            messageRepo: messageRepo,
-            settingRepo: settingRepo
-        ).execute()
+        try? await rescheduleIfNeededUseCase.execute()
     }
 }

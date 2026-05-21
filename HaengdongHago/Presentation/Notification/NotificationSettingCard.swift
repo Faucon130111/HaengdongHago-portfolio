@@ -8,17 +8,6 @@
 import SwiftData
 import SwiftUI
 
-// MARK: - Notification.Name
-
-extension Notification.Name {
-    static let notificationSettingDidChange = Notification.Name(
-        "com.haengdongha.notificationSettingDidChange"
-    )
-    static let messageListDidChange = Notification.Name(
-        "com.haengdongha.messageListDidChange"
-    )
-}
-
 struct NotificationSettingCard: View {
     @Environment(NotificationSettingViewModel.self) private var viewModel
 
@@ -193,11 +182,10 @@ private struct TimePickerSheet: View {
 
 #Preview {
     let container = try! ModelContainer(
-        for: NotificationSettingEntity.self,
+        for: ActionMessageEntity.self, NotificationSettingEntity.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
-    let repo = SwiftDataNotificationSettingRepository(context: container.mainContext)
-    let viewModel = NotificationSettingViewModel(settingRepo: repo)
+    let viewModel = PreviewSupport.notificationSettingViewModel(container.mainContext)
 
     NotificationSettingCard()
         .environment(viewModel)

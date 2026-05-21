@@ -27,3 +27,32 @@ struct PreviewContainer {
         }
     }()
 }
+
+// MARK: - Preview ViewModel 조립
+
+@MainActor
+enum PreviewSupport {
+    static func messageListViewModel(_ context: ModelContext) -> MessageListViewModel {
+        let repo = SwiftDataActionMessageRepository(context: context)
+        return MessageListViewModel(
+            useCase: MessageUseCase(messageRepo: repo, reschedule: reschedule(context))
+        )
+    }
+
+    static func notificationSettingViewModel(_ context: ModelContext) -> NotificationSettingViewModel {
+        let repo = SwiftDataNotificationSettingRepository(context: context)
+        return NotificationSettingViewModel(
+            useCase: NotificationSettingUseCase(settingRepo: repo, reschedule: reschedule(context))
+        )
+    }
+
+    private static func reschedule(_ context: ModelContext) -> RescheduleNotificationsUseCase {
+        RescheduleNotificationsUseCase(
+            messageRepo: SwiftDataActionMessageRepository(context: context),
+            settingRepo: SwiftDataNotificationSettingRepository(context: context),
+            notificationService: NotificationService(),
+            referenceDateProvider: UserDefaultsReferenceDateStore(),
+            scheduler: MotivationScheduler()
+        )
+    }
+}

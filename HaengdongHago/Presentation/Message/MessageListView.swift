@@ -37,7 +37,9 @@ struct MessageListView: View {
                     MessageListSection(
                         messages: viewModel.messages,
                         onEdit: { router.navigate(to: .messageDetail($0.id)) },
-                        onDelete: { try? viewModel.deleteMessage($0) }
+                        onDelete: { message in
+                            Task { try? await viewModel.deleteMessage(message) }
+                        }
                     )
                 }
                 .padding(16)
@@ -59,7 +61,7 @@ struct MessageListView: View {
         )
         .sheet(isPresented: $isAddSheetPresented) {
             MessageEditorSheet { content in
-                try? viewModel.addMessage(content: content)
+                Task { try? await viewModel.addMessage(content: content) }
                 isAddSheetPresented = false
             }
         }
@@ -69,7 +71,7 @@ struct MessageListView: View {
         )) {
             if let message = editingMessage {
                 MessageEditorSheet(originalContent: message.content) { newContent in
-                    try? viewModel.updateMessage(message, content: newContent)
+                    Task { try? await viewModel.updateMessage(message, content: newContent) }
                     router.editingMessageId = nil
                 }
             }
@@ -204,10 +206,8 @@ private struct MessageEditorSheet: View {
         for: ActionMessageEntity.self, NotificationSettingEntity.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
-    let repo = SwiftDataActionMessageRepository(context: container.mainContext)
-    let settingRepo = SwiftDataNotificationSettingRepository(context: container.mainContext)
-    let viewModel = MessageListViewModel(messageRepo: repo)
-    let settingViewModel = NotificationSettingViewModel(settingRepo: settingRepo)
+    let viewModel = PreviewSupport.messageListViewModel(container.mainContext)
+    let settingViewModel = PreviewSupport.notificationSettingViewModel(container.mainContext)
 
     MessageListView()
         .modelContainer(container)

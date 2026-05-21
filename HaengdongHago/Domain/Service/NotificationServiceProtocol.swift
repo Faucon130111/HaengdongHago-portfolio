@@ -8,15 +8,7 @@
 import Foundation
 
 protocol NotificationServiceProtocol {
-    func initializeReferenceData()
     func requestPermission() async throws
-    func reschedule(
-        messages: [ActionMessage],
-        setting: NotificationSetting
-    ) async
-    func rescheduleIfNeeded(
-        messages: [ActionMessage],
-        setting: NotificationSetting
-    ) async
-    func cancelMotivationNotifications()
+    func schedule(_ plans: [PlannedNotification]) async
+    func pendingMotivationCount() async -> Int
 }

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 import UserNotifications
 
 extension Notification.Name {
@@ -13,10 +14,10 @@ extension Notification.Name {
 }
 
 final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
-    private let messageRepo: ActionMessageRepository
+    private let markMessageSent: MarkMessageSentUseCase
 
-    init(messageRepo: ActionMessageRepository) {
-        self.messageRepo = messageRepo
+    init(markMessageSent: MarkMessageSentUseCase) {
+        self.markMessageSent = markMessageSent
     }
 
     // MARK: 앱 켜진 상태에서 알림 수신 시 배너 표시
@@ -25,7 +26,7 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         _: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        print("🔔 [Delegate] 포그라운드 알림 수신: \(notification.request.identifier) — \(notification.request.content.body.prefix(30))")
+        Logger.notification.debug("포그라운드 알림 수신: \(notification.request.identifier)")
         return [.banner, .sound]
     }
 
@@ -36,7 +37,7 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         didReceive response: UNNotificationResponse
     ) async {
         let userInfo = response.notification.request.content.userInfo
-        print("👆 [Delegate] 알림 탭: \(response.notification.request.identifier)")
+        Logger.notification.debug("알림 탭: \(response.notification.request.identifier)")
 
         await MainActor.run {
             NotificationCenter.default.post(
@@ -50,14 +51,11 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
                 let idString = userInfo["id"] as? String,
                 let id = UUID(uuidString: idString)
             else {
-                print("👆 [Delegate] userInfo 파싱 실패: \(userInfo)")
+                Logger.notification.debug("userInfo 파싱 실패")
                 return
             }
 
-            print("👆 [Delegate] lastSentAt 업데이트 → messageId: \(idString)")
-
-            try? messageRepo.updateLastSentAt(messageId: id, date: Date())
-            try? messageRepo.save()
+            try? markMessageSent.execute(messageId: id)
         }
     }
 }

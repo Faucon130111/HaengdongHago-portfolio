@@ -9,16 +9,12 @@ import Foundation
 
 struct RescheduleIfNeededUseCase {
     let notificationService: NotificationServiceProtocol
-    let messageRepo: ActionMessageRepository
-    let settingRepo: NotificationSettingRepository
+    let reschedule: RescheduleNotificationsUseCase
+    var threshold: Int = 10
 
     func execute() async throws {
-        let messages = try messageRepo.fetchAll()
-        let setting = try settingRepo.fetch()
-
-        await notificationService.rescheduleIfNeeded(
-            messages: messages,
-            setting: setting
-        )
+        let remaining = await notificationService.pendingMotivationCount()
+        guard remaining < threshold else { return }
+        try await reschedule.execute()
     }
 }

@@ -7,21 +7,22 @@
 
 import Foundation
 
+@MainActor
 @Observable
 final class NotificationSettingViewModel {
     private(set) var hour: Int = 7
     private(set) var minute: Int = 0
     private(set) var deliveryMode: DeliveryMode = .random
 
-    private let settingRepo: NotificationSettingRepository
+    private let useCase: NotificationSettingUseCase
 
-    init(settingRepo: NotificationSettingRepository) {
-        self.settingRepo = settingRepo
+    init(useCase: NotificationSettingUseCase) {
+        self.useCase = useCase
         load()
     }
 
     func load() {
-        guard let setting = try? settingRepo.fetch() else { return }
+        guard let setting = try? useCase.load() else { return }
         hour = setting.hour
         minute = setting.minute
         deliveryMode = setting.deliveryMode
@@ -40,7 +41,6 @@ final class NotificationSettingViewModel {
 
     private func persist() {
         let setting = NotificationSetting(hour: hour, minute: minute, deliveryMode: deliveryMode)
-        try? settingRepo.update(setting)
-        NotificationCenter.default.post(name: .notificationSettingDidChange, object: nil)
+        Task { try? await useCase.update(setting) }
     }
 }

@@ -17,5 +17,4 @@ protocol ActionMessageRepository {
         messageId: UUID,
         date: Date
     ) throws
-    func save() throws
 }
