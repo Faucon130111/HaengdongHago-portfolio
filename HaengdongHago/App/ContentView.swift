@@ -49,7 +49,11 @@ struct ContentView: View {
 }
 
 #Preview {
+    let container = try! ModelContainer(
+        for: ActionMessageEntity.self, NotificationSettingEntity.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
     ContentView()
         .environment(Router())
-        .modelContainer(for: ActionMessage.self, inMemory: true)
+        .modelContainer(container)
 }

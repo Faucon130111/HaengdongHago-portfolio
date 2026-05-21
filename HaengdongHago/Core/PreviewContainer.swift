@@ -12,13 +12,13 @@ struct PreviewContainer {
     static let actionMessage: ModelContainer = {
         do {
             let container = try ModelContainer(
-                for: ActionMessage.self,
+                for: ActionMessageEntity.self,
                 configurations: ModelConfiguration(isStoredInMemoryOnly: true)
             )
 
             let context = container.mainContext
             for item in ActionMessage.defaults() {
-                context.insert(item)
+                context.insert(ActionMessageEntity.from(item))
             }
 
             return container

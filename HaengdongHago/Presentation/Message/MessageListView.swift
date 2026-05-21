@@ -9,27 +9,14 @@ import SwiftData
 import SwiftUI
 
 struct MessageListView: View {
-    @Environment(\.modelContext) private var context
     @Environment(Router.self) private var router
-
-    @Query(sort: \ActionMessage.order) private var messages: [ActionMessage]
-    @Query private var settings: [NotificationSetting]
+    @Environment(MessageListViewModel.self) private var viewModel
 
     @State private var isAddSheetPresented = false
 
-    private var setting: NotificationSetting {
-        if let existing = settings.first {
-            return existing
-        }
-
-        let newSetting = NotificationSetting()
-        context.insert(newSetting)
-        return newSetting
-    }
-
     private var editingMessage: ActionMessage? {
         guard let id = router.editingMessageId else { return nil }
-        return messages.first { $0.id == id }
+        return viewModel.messages.first { $0.id == id }
     }
 
     var body: some View {
@@ -39,21 +26,18 @@ struct MessageListView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     // 헤더
-                    HeaderView(totalCount: messages.count) {
+                    HeaderView(totalCount: viewModel.messages.count) {
                         isAddSheetPresented = true
                     }
 
                     // 알림 설정 카드
-                    NotificationSettingCard(setting: setting)
+                    NotificationSettingCard()
 
                     // 메시지 목록
                     MessageListSection(
-                        messages: messages,
+                        messages: viewModel.messages,
                         onEdit: { router.navigate(to: .messageDetail($0.id)) },
-                        onDelete: {
-                            context.delete($0)
-                            NotificationCenter.default.post(name: .messageListDidChange, object: nil)
-                        }
+                        onDelete: { try? viewModel.deleteMessage($0) }
                     )
                 }
                 .padding(16)
@@ -63,10 +47,10 @@ struct MessageListView: View {
         .background(
             LinearGradient(
                 stops: [
-                    .init(color: Color(red: 1.0, green: 0.176, blue: 0.333), location: 0.00), // #ff2d55 핫핑크
-                    .init(color: Color(red: 1.0, green: 0.369, blue: 0.227), location: 0.35), // #ff5e3a 코랄
-                    .init(color: Color(red: 1.0, green: 0.584, blue: 0.000), location: 0.75), // #ff9500 오렌지
-                    .init(color: Color(red: 1.0, green: 0.800, blue: 0.000), location: 1.00), // #ffcc00 옐로우
+                    .init(color: Color(red: 1.0, green: 0.176, blue: 0.333), location: 0.00),
+                    .init(color: Color(red: 1.0, green: 0.369, blue: 0.227), location: 0.35),
+                    .init(color: Color(red: 1.0, green: 0.584, blue: 0.000), location: 0.75),
+                    .init(color: Color(red: 1.0, green: 0.800, blue: 0.000), location: 1.00),
                 ],
                 startPoint: UnitPoint(x: 0.3, y: 0.0),
                 endPoint: UnitPoint(x: 0.7, y: 1.0)
@@ -75,8 +59,7 @@ struct MessageListView: View {
         )
         .sheet(isPresented: $isAddSheetPresented) {
             MessageEditorSheet { content in
-                context.insert(ActionMessage(content: content, order: (messages.last?.order ?? -1) + 1))
-                NotificationCenter.default.post(name: .messageListDidChange, object: nil)
+                try? viewModel.addMessage(content: content)
                 isAddSheetPresented = false
             }
         }
@@ -86,8 +69,7 @@ struct MessageListView: View {
         )) {
             if let message = editingMessage {
                 MessageEditorSheet(originalContent: message.content) { newContent in
-                    message.content = newContent
-                    NotificationCenter.default.post(name: .messageListDidChange, object: nil)
+                    try? viewModel.updateMessage(message, content: newContent)
                     router.editingMessageId = nil
                 }
             }
@@ -218,9 +200,18 @@ private struct MessageEditorSheet: View {
 }
 
 #Preview {
+    let container = try! ModelContainer(
+        for: ActionMessageEntity.self, NotificationSettingEntity.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
+    let repo = SwiftDataActionMessageRepository(context: container.mainContext)
+    let settingRepo = SwiftDataNotificationSettingRepository(context: container.mainContext)
+    let viewModel = MessageListViewModel(messageRepo: repo)
+    let settingViewModel = NotificationSettingViewModel(settingRepo: settingRepo)
+
     MessageListView()
-        .modelContainer(
-            for: [ActionMessage.self, NotificationSetting.self],
-            inMemory: true
-        )
+        .modelContainer(container)
+        .environment(Router())
+        .environment(viewModel)
+        .environment(settingViewModel)
 }

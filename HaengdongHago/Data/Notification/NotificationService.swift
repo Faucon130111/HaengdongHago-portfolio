@@ -13,13 +13,13 @@ enum NotificationError: Error {
     case scheduleFailed(Error)
 }
 
-final class NotificationService {
+final class NotificationService: NotificationServiceProtocol {
     private static let idPrefix = "motivation-"
     private static let referenceDateKey = "motivationReferenceDate"
 
     // MARK: - 기준일 초기화 (앱 최초 실행 시 1회)
 
-    func initializeReferenceDate() {
+    func initializeReferenceData() {
         if UserDefaults.standard.object(forKey: Self.referenceDateKey) == nil {
             UserDefaults.standard.set(Date(), forKey: Self.referenceDateKey)
         }
@@ -57,12 +57,9 @@ final class NotificationService {
                 ? sequentialMessage(for: dayOffset, messages: sorted)
                 : randomMessage(for: dayOffset, messages: sorted)
 
-            #if DEBUG
-                let targetDate = Calendar.current.date(byAdding: .minute, value: dayOffset, to: .now)!
-            #else
-                let targetDate = Calendar.current.date(byAdding: .day, value: dayOffset, to: .now)!
-            #endif
             var dateComponents = DateComponents()
+            let targetDate = Calendar.current.date(byAdding: .day, value: dayOffset, to: .now)!
+
             dateComponents.hour = setting.hour
             dateComponents.minute = setting.minute
             dateComponents.day = Calendar.current.component(.day, from: targetDate)

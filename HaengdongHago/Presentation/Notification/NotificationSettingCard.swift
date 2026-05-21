@@ -5,6 +5,7 @@
 //  Created by bonhyuk on 4/29/26.
 //
 
+import SwiftData
 import SwiftUI
 
 // MARK: - Notification.Name
@@ -19,7 +20,7 @@ extension Notification.Name {
 }
 
 struct NotificationSettingCard: View {
-    @Bindable var setting: NotificationSetting
+    @Environment(NotificationSettingViewModel.self) private var viewModel
 
     @State private var isTimePickerPresented = false
 
@@ -59,58 +60,55 @@ struct NotificationSettingCard: View {
 
                 Spacer()
 
-                DeliveryModeToggle(mode: $setting.deliveryMode)
+                DeliveryModeToggle(mode: Binding(
+                    get: { viewModel.deliveryMode },
+                    set: { viewModel.updateDeliveryMode($0) }
+                ))
             }
             .padding(16)
         }
         .background(.white)
         .clipShape(RoundedRectangle(cornerRadius: 14))
-        .onChange(of: setting.hour) { _, _ in postReschedule() }
-        .onChange(of: setting.minute) { _, _ in postReschedule() }
-        .onChange(of: setting.deliveryMode) { _, _ in postReschedule() }
         .sheet(isPresented: $isTimePickerPresented) {
-            TimePickerSheet(hour: $setting.hour, minute: $setting.minute)
-                .presentationDetents([.height(300)])
+            TimePickerSheet(
+                initialHour: viewModel.hour,
+                initialMinute: viewModel.minute
+            ) { hour, minute in
+                viewModel.updateTime(hour: hour, minute: minute)
+            }
+            .presentationDetents([.height(300)])
         }
     }
 
     // MARK: - Private
 
     private var timeLabel: String {
-        let period = setting.hour < 12 ? "오전" : "오후"
-        let displayHour = setting.hour == 0 ? 12 : (setting.hour > 12 ? setting.hour - 12 : setting.hour)
-        let minuteStr = String(format: "%02d", setting.minute)
+        let period = viewModel.hour < 12 ? "오전" : "오후"
+        let displayHour = viewModel.hour == 0 ? 12 : (viewModel.hour > 12 ? viewModel.hour - 12 : viewModel.hour)
+        let minuteStr = String(format: "%02d", viewModel.minute)
         return "매일 \(period) \(displayHour):\(minuteStr)"
-    }
-
-    private func postReschedule() {
-        NotificationCenter.default.post(
-            name: .notificationSettingDidChange,
-            object: nil
-        )
     }
 }
 
 // MARK: - Private
 
 private struct TimePickerSheet: View {
-    @Binding var hour: Int
-    @Binding var minute: Int
+    let initialHour: Int
+    let initialMinute: Int
+    let onConfirm: (Int, Int) -> Void
+
+    @State private var isPM: Bool
+    @State private var displayHour: Int
+    @State private var selectedMinute: Int
     @Environment(\.dismiss) private var dismiss
 
-    // 내부 상태 (오전/오후, 시, 분 분리)
-    @State private var isPM: Bool
-    @State private var displayHour: Int // 1~12
-    @State private var selectedMinute: Int
-
-    init(hour: Binding<Int>, minute: Binding<Int>) {
-        _hour = hour
-        _minute = minute
-
-        let hour24 = hour.wrappedValue
-        _isPM = State(initialValue: hour24 >= 12)
-        _displayHour = State(initialValue: hour24 == 0 ? 12 : (hour24 > 12 ? hour24 - 12 : hour24))
-        _selectedMinute = State(initialValue: minute.wrappedValue)
+    init(initialHour: Int, initialMinute: Int, onConfirm: @escaping (Int, Int) -> Void) {
+        self.initialHour = initialHour
+        self.initialMinute = initialMinute
+        self.onConfirm = onConfirm
+        _isPM = State(initialValue: initialHour >= 12)
+        _displayHour = State(initialValue: initialHour == 0 ? 12 : (initialHour > 12 ? initialHour - 12 : initialHour))
+        _selectedMinute = State(initialValue: initialMinute)
     }
 
     var body: some View {
@@ -170,15 +168,13 @@ private struct TimePickerSheet: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 Button("완료") {
-                    // 오전/오후 + displayHour → 24시간 변환
                     let converted: Int = switch (isPM, displayHour) {
-                    case (false, 12): 0 // 오전 12시 = 자정
+                    case (false, 12): 0
                     case (false, _): displayHour
-                    case (true, 12): 12 // 오후 12시 = 정오
+                    case (true, 12): 12
                     case (true, _): displayHour + 12
                     }
-                    hour = converted
-                    minute = selectedMinute
+                    onConfirm(converted, selectedMinute)
                     dismiss()
                 }
                 .frame(maxWidth: .infinity)
@@ -191,15 +187,20 @@ private struct TimePickerSheet: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 8)
         }
-        .presentationDetents([.height(300)])
         .presentationBackground(Color(.secondarySystemBackground))
     }
 }
 
 #Preview {
-    let setting = NotificationSetting()
+    let container = try! ModelContainer(
+        for: NotificationSettingEntity.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
+    let repo = SwiftDataNotificationSettingRepository(context: container.mainContext)
+    let viewModel = NotificationSettingViewModel(settingRepo: repo)
 
-    NotificationSettingCard(setting: setting)
+    NotificationSettingCard()
+        .environment(viewModel)
         .padding()
         .background(Color.orange.opacity(0.3))
 }

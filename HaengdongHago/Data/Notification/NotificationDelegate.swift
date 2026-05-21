@@ -6,15 +6,17 @@
 //
 
 import Foundation
-import SwiftData
 import UserNotifications
 
-final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
-    private let modelContext: ModelContext
-    var router: Router?
+extension Notification.Name {
+    static let notificationTapped = Notification.Name("com.haengdongha.notificationTapped")
+}
 
-    init(modelContext: ModelContext) {
-        self.modelContext = modelContext
+final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
+    private let messageRepo: ActionMessageRepository
+
+    init(messageRepo: ActionMessageRepository) {
+        self.messageRepo = messageRepo
     }
 
     // MARK: 앱 켜진 상태에서 알림 수신 시 배너 표시
@@ -37,7 +39,11 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         print("👆 [Delegate] 알림 탭: \(response.notification.request.identifier)")
 
         await MainActor.run {
-            router?.handle(userInfo: userInfo)
+            NotificationCenter.default.post(
+                name: .notificationTapped,
+                object: nil,
+                userInfo: userInfo
+            )
 
             guard
                 let type = userInfo["type"] as? String, type == "message",
@@ -49,23 +55,9 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             }
 
             print("👆 [Delegate] lastSentAt 업데이트 → messageId: \(idString)")
-            updateLastSentAt(messageId: id)
+
+            try? messageRepo.updateLastSentAt(messageId: id, date: Date())
+            try? messageRepo.save()
         }
-    }
-
-    // MARK: - Private
-
-    private func updateLastSentAt(messageId: UUID) {
-        let descriptor = FetchDescriptor<ActionMessage>(
-            predicate: #Predicate { $0.id == messageId }
-        )
-
-        guard let message = try? modelContext.fetch(descriptor).first
-        else {
-            return
-        }
-
-        message.lastSentAt = Date()
-        try? modelContext.save()
     }
 }

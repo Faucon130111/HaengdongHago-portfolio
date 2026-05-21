@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import SwiftData
 
 // MARK: - 발송 방식
 
@@ -17,23 +16,25 @@ enum DeliveryMode: String, Codable {
 
 // MARK: - 행동 메시지
 
-@Model
-class ActionMessage {
+struct ActionMessage: Identifiable {
     var id: UUID
     var content: String
-    var order: Int // 순서대로 발송 시 사용
-    var lastSentAt: Date? // nil이면 "아직 발신 안 됨"
+    var order: Int
+    var lastSentAt: Date?
     var createdAt: Date
 
     init(
+        id: UUID = UUID(),
         content: String,
-        order: Int
+        order: Int,
+        lastSentAt: Date? = nil,
+        createdAt: Date = Date()
     ) {
-        id = UUID()
+        self.id = id
         self.content = content
         self.order = order
-        lastSentAt = nil
-        createdAt = Date()
+        self.lastSentAt = lastSentAt
+        self.createdAt = createdAt
     }
 }
 

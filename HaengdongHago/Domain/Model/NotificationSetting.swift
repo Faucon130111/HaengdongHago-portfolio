@@ -6,12 +6,10 @@
 //
 
 import Foundation
-import SwiftData
 
 // MARK: - 알림 설정
 
-@Model
-class NotificationSetting {
+struct NotificationSetting {
     var hour: Int
     var minute: Int
     var deliveryMode: DeliveryMode
