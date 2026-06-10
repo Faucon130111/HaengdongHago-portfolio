@@ -94,3 +94,51 @@ struct FixedReferenceDateProvider: ReferenceDateProviding {
         date
     }
 }
+
+// MARK: - 인메모리 할 일 저장소
+
+final class FakeTodoRepository: TodoRepository {
+    var todos: [Todo]
+
+    init(_ todos: [Todo] = []) {
+        self.todos = todos
+    }
+
+    func fetchAll() throws -> [Todo] {
+        todos
+    }
+
+    func add(_ todo: Todo) throws {
+        todos.append(todo)
+    }
+
+    func update(_ todo: Todo) throws {
+        guard let idx = todos.firstIndex(where: { $0.id == todo.id }) else { return }
+        todos[idx] = todo
+    }
+
+    func delete(_ todo: Todo) throws {
+        todos.removeAll { $0.id == todo.id }
+    }
+}
+
+// MARK: - 할 일 알림 스파이 (호출 기록)
+
+final class SpyTodoNotificationService: TodoNotificationScheduling {
+    private(set) var scheduleCallCount = 0
+    private(set) var cancelCallCount = 0
+    private(set) var scheduledIds: [UUID] = []
+    private(set) var canceledIds: [UUID] = []
+    private(set) var lastScheduledDate: Date?
+
+    func schedule(id: UUID, title: String, body: String, at fireDate: Date) async {
+        scheduleCallCount += 1
+        scheduledIds.append(id)
+        lastScheduledDate = fireDate
+    }
+
+    func cancel(id: UUID) async {
+        cancelCallCount += 1
+        canceledIds.append(id)
+    }
+}
