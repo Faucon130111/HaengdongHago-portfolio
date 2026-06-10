@@ -46,6 +46,22 @@ enum PreviewSupport {
         )
     }
 
+    static func todoListViewModel(_ context: ModelContext) -> TodoListViewModel {
+        let repo = SwiftDataTodoRepository(context: context)
+        return TodoListViewModel(
+            useCase: TodoUseCase(repo: repo, notification: TodoNotificationService())
+        )
+    }
+
+    static func seededTodoListViewModel(_ context: ModelContext) -> TodoListViewModel {
+        for todo in Todo.samples() {
+            context.insert(TodoEntity.from(todo))
+        }
+        let viewModel = todoListViewModel(context)
+        viewModel.load()
+        return viewModel
+    }
+
     private static func reschedule(_ context: ModelContext) -> RescheduleNotificationsUseCase {
         RescheduleNotificationsUseCase(
             messageRepo: SwiftDataActionMessageRepository(context: context),
