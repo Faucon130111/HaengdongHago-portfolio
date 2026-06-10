@@ -74,3 +74,4 @@ secrets.plist
 *.tmp
 *.swp
 *~
+.claude/
