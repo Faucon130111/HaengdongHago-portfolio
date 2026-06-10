@@ -59,19 +59,4 @@ extension ActionMessage {
             ),
         ]
     }
-
-    var lastSentLabel: String {
-        guard let date = lastSentAt
-        else {
-            return "아직 발신 안 됨"
-        }
-
-        let days = Calendar.current.dateComponents(
-            [.day],
-            from: date,
-            to: Date()
-        ).day ?? 0
-
-        return days == 0 ? "오늘 발신" : "\(days)일 전 발신"
-    }
 }
