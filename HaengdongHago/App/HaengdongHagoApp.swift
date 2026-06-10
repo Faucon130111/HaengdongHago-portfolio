@@ -18,6 +18,7 @@ struct HaengdongHagoApp: App {
     @State private var isInitialLaunch = true
     @State private var messageListViewModel: MessageListViewModel
     @State private var notificationSettingViewModel: NotificationSettingViewModel
+    @State private var todoListViewModel: TodoListViewModel
 
     private let notificationDelegate: NotificationDelegate
     private let seedDefaultsUseCase: SeedDefaultsUseCase
@@ -28,6 +29,7 @@ struct HaengdongHagoApp: App {
         let schema = Schema([
             ActionMessageEntity.self,
             NotificationSettingEntity.self,
+            TodoEntity.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
@@ -42,7 +44,9 @@ struct HaengdongHagoApp: App {
 
         let messageRepo = SwiftDataActionMessageRepository(context: context)
         let settingRepo = SwiftDataNotificationSettingRepository(context: context)
+        let todoRepo = SwiftDataTodoRepository(context: context)
         let notificationService = NotificationService()
+        let todoNotificationService = TodoNotificationService()
         let referenceDateProvider = UserDefaultsReferenceDateStore()
         let scheduler = MotivationScheduler()
 
@@ -80,6 +84,11 @@ struct HaengdongHagoApp: App {
                 useCase: NotificationSettingUseCase(settingRepo: settingRepo, reschedule: reschedule)
             )
         )
+        _todoListViewModel = State(
+            wrappedValue: TodoListViewModel(
+                useCase: TodoUseCase(repo: todoRepo, notification: todoNotificationService)
+            )
+        )
     }
 
     var body: some Scene {
@@ -89,6 +98,7 @@ struct HaengdongHagoApp: App {
                     .environment(router)
                     .environment(messageListViewModel)
                     .environment(notificationSettingViewModel)
+                    .environment(todoListViewModel)
                     .onReceive(
                         NotificationCenter.default.publisher(for: .notificationTapped)
                     ) { notification in
@@ -115,6 +125,7 @@ struct HaengdongHagoApp: App {
             .task {
                 try? seedDefaultsUseCase.execute()
                 messageListViewModel.load()
+                todoListViewModel.load()
                 await runSetupNotification()
             }
         }

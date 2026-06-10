@@ -15,27 +15,31 @@ final class Router {
 
     enum Destination: Hashable {
         case messageDetail(UUID) // 메시지 상세
+        case todoDetail(UUID) // 할 일 상세
     }
 
     // MARK: 탭
 
     enum Tab {
-        case today
-        case all
+        case todo
         case message
-        case more
     }
 
     // MARK: State
 
-    var selectedTab: Tab = .today
+    var selectedTab: Tab = .todo
     var editingMessageId: UUID?
+    var editingTodoId: UUID?
 
     func navigate(to destination: Destination) {
         switch destination {
         case let .messageDetail(id):
             selectedTab = .message
             editingMessageId = id
+
+        case let .todoDetail(id):
+            selectedTab = .todo
+            editingTodoId = id
         }
     }
 
@@ -61,6 +65,16 @@ final class Router {
                 return
             }
             navigate(to: .messageDetail(id))
+
+        case "todo":
+            guard
+                let idString = userInfo["id"] as? String,
+                let id = UUID(uuidString: idString)
+            else {
+                selectedTab = .todo // id 없으면 탭만 전환
+                return
+            }
+            navigate(to: .todoDetail(id))
 
         default:
             break
