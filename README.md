@@ -2,6 +2,7 @@
 
 > "행동하지 않으면 아무것도 일어나지 않는다." — 매일 한 줄의 동기부여 메시지와 마감 알림 할 일로 **실행**을 돕는 iOS 앱
 
+[![CI](https://github.com/Faucon130111/HaengdongHago-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/Faucon130111/HaengdongHago-portfolio/actions/workflows/ci.yml)
 ![Swift](https://img.shields.io/badge/Swift-5.0-orange?logo=swift&logoColor=white)
 ![iOS](https://img.shields.io/badge/iOS-17.0%2B-black?logo=apple&logoColor=white)
 ![UI](https://img.shields.io/badge/UI-SwiftUI-blue)

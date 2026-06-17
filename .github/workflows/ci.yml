@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# 같은 브랜치에서 새 푸시가 오면 진행 중인 실행을 취소(러너 시간 절약)
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-build-test:
+    name: Lint · Build · Test
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode (latest stable)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
+
+      - name: SwiftLint
+        run: swiftlint lint --reporter github-actions-logging
+
+      - name: Build & Test
+        run: |
+          set -o pipefail
+          # 러너의 Xcode 버전에 상관없이 사용 가능한 iPhone 시뮬레이터를 동적으로 선택
+          UDID=$(xcrun simctl list devices available | grep 'iPhone' | head -1 | grep -oE '[0-9A-Fa-f-]{36}')
+          echo "Using simulator UDID: $UDID"
+          # xcbeautify가 있으면 로그를 정리, 없으면 원본 출력(cat) — 포맷터 부재로 CI가 깨지지 않게
+          FMT=cat; command -v xcbeautify >/dev/null && FMT=xcbeautify
+          # UI 테스트는 Xcode 기본 보일러플레이트(특히 launch 성능 테스트가 10회 반복 → 수 분 소요)라
+          # CI에선 제외하고 의미 있는 유닛 테스트만 실행 → 빠르고 안정적
+          xcodebuild test \
+            -project HaengdongHago.xcodeproj \
+            -scheme HaengdongHago \
+            -destination "id=$UDID" \
+            -skip-testing:HaengdongHagoUITests \
+            | $FMT
